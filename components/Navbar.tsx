@@ -1,8 +1,8 @@
 import React from "react";
 
-type Props = {};
+// type Props = {};
 
-const Navbar = (props: Props) => {
+const Navbar = () => {
   return <div>Navbar</div>;
 };
 
