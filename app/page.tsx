@@ -1,8 +1,10 @@
+import HeroSection from "@/sections/HeroSection";
+
 export default function Home() {
   return (
     <section>
       <section>
-        <p>Hello AI</p>
+        <HeroSection />
       </section>
     </section>
   );
