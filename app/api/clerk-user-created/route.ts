@@ -1,73 +1,55 @@
 // app/api/clerk-user-created/route.ts
 
-import { NextRequest } from 'next/server'
-import { Webhook } from 'svix'
-import { headers } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
-
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-}
+import { NextRequest, NextResponse } from "next/server";
+import { Webhook } from "svix"; // for verifying signature (optional, secure)
+import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-interface ClerkUserCreatedEvent {
-    type: 'user.created'
-    data: {
-        id: string
-        email_addresses: { email_address: string }[]
-        image_url: string
-        first_name: string
-        last_name: string
-        [key: string]: any
-    }
-}
+    process.env.SUPABASE_SERVICE_ROLE_KEY! // must be service role
+);
 
 export async function POST(req: NextRequest) {
+    const payload = await req.text(); // get raw body for signature check
+    const headers = req.headers;
+
+    const svix_id = headers.get("svix-id")!;
+    const svix_timestamp = headers.get("svix-timestamp")!;
+    const svix_signature = headers.get("svix-signature")!;
+
+    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET!;
+
+    const wh = new Webhook(webhookSecret);
+
+    let evt: any;
     try {
-        const rawBody = await req.arrayBuffer()
-        const payload = Buffer.from(rawBody).toString()
-
-        const headerList = await headers()
-        const clerkSignature = headerList.get('svix-signature')
-        if (!clerkSignature) {
-            return new Response(JSON.stringify({ error: 'Missing Clerk signature' }), { status: 400 })
-        }
-
-        const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET!)
-        const evt = wh.verify(payload, { 'svix-signature': clerkSignature }) as ClerkUserCreatedEvent
-
-        if (evt.type !== 'user.created') {
-            return new Response(JSON.stringify({ message: 'Event ignored' }), { status: 200 })
-        }
-
-        const user = evt.data
-        const { id, email_addresses, first_name, last_name } = user
-
-        const { error } = await supabase.from('profiles').insert({
-            id,
-            email: email_addresses?.[0]?.email_address || null,
-            full_name: `${first_name || ''} ${last_name || ''}`.trim(),
-            subscription_tier: 'free_trial',         // default value
-            interview_credits: 1,                    // default value
-            razorpay_customer_id: null,
-            razorpay_subscription_id: null,
-            subscription_status: null
-        })
-
-        if (error) {
-            console.error('❌ Supabase insert error:', error)
-            return new Response(JSON.stringify({ error: 'Insert failed' }), { status: 500 })
-        }
-
-        return new Response(JSON.stringify({ success: true }), { status: 200 })
-    } catch (err: any) {
-        console.error('❌ Webhook error:', err.message || err)
-        return new Response(JSON.stringify({ error: 'Webhook failed' }), { status: 400 })
+        evt = wh.verify(payload, {
+            "svix-id": svix_id,
+            "svix-timestamp": svix_timestamp,
+            "svix-signature": svix_signature,
+        });
+    } catch (err) {
+        console.error("Webhook verification failed", err);
+        return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    // ✅ Extract user data
+    const { id, email_addresses, image_url, first_name, last_name } = evt.data;
+
+    const email = email_addresses?.[0]?.email_address;
+    const full_name = `${first_name ?? ""} ${last_name ?? ""}`.trim();
+
+    const { error } = await supabase.from("profiles").insert({
+        id,
+        email,
+        full_name,
+        avatar_url: image_url,
+    });
+
+    if (error) {
+        console.error("Supabase insert failed", error);
+        return new NextResponse("Supabase insert failed", { status: 500 });
+    }
+
+    return new NextResponse("User created in Supabase ✅", { status: 200 });
 }
