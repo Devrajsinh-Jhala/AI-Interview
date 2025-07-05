@@ -1,101 +1,97 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { ArrowRight, PlayCircle } from "lucide-react";
 
 const HeroSection = () => {
-  const { isSignedIn } = useAuth();
+  const { user, loading } = useSupabaseAuth();
+  const isSignedIn = !!user;
 
   return (
-    <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-12">
-        {/* Text Section */}
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight mb-4">
-            Master Your{" "}
-            <span className="text-primary">Technical Interviews</span> with{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse drop-shadow-md">
+    <section className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+        <div className="text-center">
+          {/* Main Title */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+            Master Your Technical Interviews with
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mt-2">
               AI-Powered Practice
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground mb-8">
-            Experience realistic coding interviews with our AI interviewer.
-            Receive instant feedback, adaptive hints, and detailed performance
-            reports to land your dream job.
+          {/* Subtitle */}
+          <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-muted-foreground">
+            Experience realistic, conversational interviews with our advanced
+            AI. Get instant, actionable feedback and land your dream job faster.
           </p>
 
           {/* Feature Badges */}
-          <div className="flex flex-wrap justify-center gap-3 mb-10">
-            <Badge variant="secondary">🤖 AI Interviewer</Badge>
+          <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-3">
+            <Badge variant="secondary">🤖 Conversational AI</Badge>
             <Badge variant="secondary">⚡ Real-time Feedback</Badge>
             <Badge variant="secondary">📊 Performance Analytics</Badge>
-            <Badge variant="secondary">🎯 Company-Specific Prep</Badge>
+            <Badge variant="secondary">🎯 Adaptive Questions</Badge>
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-            {isSignedIn ? (
+          <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+            {/* Conditional Rendering based on Auth State */}
+            {loading ? (
+              // Skeleton loaders for buttons while auth state is being determined
               <>
-                <Button asChild size="lg" className="text-lg px-6 py-4">
-                  <Link href="/dashboard">Start Interview Practice</Link>
-                </Button>
+                <div className="h-14 w-52 bg-gray-300 rounded-lg animate-pulse"></div>
+                <div className="h-14 w-40 bg-gray-200 rounded-lg animate-pulse"></div>
+              </>
+            ) : isSignedIn ? (
+              // Buttons for Signed-In Users
+              <>
                 <Button
                   asChild
-                  variant="outline"
                   size="lg"
-                  className="text-lg px-6 py-4 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                  className="group text-lg px-8 py-7 shadow-lg hover:shadow-xl transition-shadow"
                 >
-                  <Link href="/history">View Progress</Link>
+                  <Link href="/dashboard">
+                    Go to Dashboard{" "}
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
               </>
             ) : (
+              // Buttons for Signed-Out Users
               <>
-                <Button asChild size="lg" className="text-lg px-6 py-4">
-                  <Link href="/sign-up">Start Free Trial</Link>
+                <Button
+                  asChild
+                  size="lg"
+                  className="group text-lg px-8 py-7 shadow-lg hover:shadow-xl transition-shadow"
+                >
+                  <Link href="/auth?view=sign-up">
+                    Start Free Trial{" "}
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
                 <Button
                   asChild
-                  variant="outline"
+                  variant="link"
                   size="lg"
-                  className="text-lg px-6 py-4 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                  className="text-lg text-primary"
                 >
-                  <Link href="/pricing">View Pricing</Link>
+                  <Link href="/#demo">
+                    Watch Demo <PlayCircle className="w-5 h-5 ml-2" />
+                  </Link>
                 </Button>
               </>
             )}
           </div>
 
-          {/* Trial Message */}
-          {!isSignedIn && (
+          {/* Trial Message - only show if not signed in and not loading */}
+          {!loading && !isSignedIn && (
             <p className="text-sm text-gray-500 mt-4">
-              ✨ <strong>Free Trial:</strong> Get 1 complete interview session •
-              No credit card required
+              ✨ <strong>1 Free Interview</strong> • No credit card required
             </p>
           )}
-        </div>
-
-        {/* Hero Video/Illustration Section */}
-        <div className="relative max-w-4xl mx-auto">
-          <div className="rounded-2xl border  p-6 shadow-lg">
-            <div className="aspect-video rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <div className="text-white text-center">
-                <svg
-                  className="w-16 h-16 mx-auto mb-3 opacity-90"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                <p className="text-lg font-medium">Watch Demo</p>
-                <p className="text-sm text-white/80">
-                  See how our AI interviewer works
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
